@@ -1,0 +1,15 @@
+apiVersion: 1
+
+providers: 
+  - 
+    allowUiUpdates: false
+    disableDeletion: false
+    folder: ""
+    folderUid: ""
+    name: Default
+    options: 
+      foldersFromFilesStructure: true
+      path: /etc/dashboards
+    orgId: 1
+    type: file
+    updateIntervalSeconds: 30

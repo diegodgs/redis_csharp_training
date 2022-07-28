@@ -9,6 +9,23 @@ services:
     # command: redis-server --save 60 1 --loglevel warning
     volumes: 
       - cache:/data
+
+  grafana:
+    container_name: grafana
+    image: ghcr.io/redisgrafana/redis-app:latest
+    ports:
+      - "3000:3000"
+    user: "1001"
+    environment:
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_BASIC_ENABLED=false
+      - GF_ENABLE_GZIP=true
+      - GF_USERS_DEFAULT_THEME=dark
+    volumes:
+      - ./provisioning:/etc/grafana/provisioning
+      - ./dashboards:/etc/dashboards
+
 volumes:
   cache:
     driver: local
