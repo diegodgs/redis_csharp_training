@@ -1,6 +1,6 @@
 using NRedisTimeSeries.DataTypes;
-using NRedisTimeSeries.Commands.Enums;
 using StackExchange.Redis;
+using NRedisTimeSeries.Commands.Enums;
 using Fynance.Result;
 
 
@@ -18,11 +18,13 @@ namespace NRedisTimeSeries.RedisTimeSeriesAdapter
             var time_series = new List<(string, TimeStamp, double)>();
             string ts_complete_name = $"{symbol}:{quote_type}";
 
+            RedisTimeSeries.CreateTimeSeries(ts_complete_name, symbol, quote_type);
+
             foreach (var item in quotes)
             {
-                DateTimeOffset dto = new DateTimeOffset(item.Period);
-                TimeStamp ts = new TimeStamp(dto.ToUnixTimeSeconds());
-                
+                long unixTime = (long)item.Period.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
+                TimeStamp ts = new TimeStamp(unixTime);
+
                 Decimal value = (Decimal)(item.GetType().GetProperty(quote_type)!.GetValue(item)!);
 
                 time_series.Add(
@@ -36,17 +38,7 @@ namespace NRedisTimeSeries.RedisTimeSeriesAdapter
 
             ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost");
             IDatabase db = redis.GetDatabase();
-            
-            var labels = new List<TimeSeriesLabel> {
-                new TimeSeriesLabel("symbol", symbol),
-                new TimeSeriesLabel("type", quote_type),
-            };
 
-            db.TimeSeriesCreate(
-                ts_complete_name,
-                labels: labels
-            );
-            
             db.TimeSeriesMAdd(time_series);
             redis.Close();
         }
@@ -70,13 +62,38 @@ namespace NRedisTimeSeries.RedisTimeSeriesAdapter
         }
 
         /// <summary>
-        /// 
+        /// Delete all Redis Database
         /// </summary>
         public static void DeleteAllDatabase()
         {
             ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost");
             IDatabase db = redis.GetDatabase();
             db.Execute("FLUSHALL");
+            redis.Close();
+        }
+
+        /// <summary>
+        /// Create a new TimeSeries on Redis Database
+        /// </summary>
+        /// <param name="ts_complete_name"> A valid Redis key name</param>
+        /// <param name="symbol">Quote Symbol</param>
+        /// <param name="quote_type">Quote Type</param>
+        public static void CreateTimeSeries(string ts_complete_name, string symbol, string quote_type)
+        {
+            ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost");
+            IDatabase db = redis.GetDatabase();
+
+            var labels = new List<TimeSeriesLabel> {
+                new TimeSeriesLabel("symbol", symbol),
+                new TimeSeriesLabel("type", quote_type),
+            };
+
+            db.TimeSeriesCreate(
+                ts_complete_name,
+                labels: labels,
+                duplicatePolicy: TsDuplicatePolicy.LAST
+            );
+
             redis.Close();
         }
     }
