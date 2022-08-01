@@ -10,15 +10,22 @@ namespace NRedisTimeSeries.RedisTimeSeriesAdapter
     /// <summary>
     /// Examples for NRedisTimeSeries API for adding new sample to time series.
     /// </summary>
-    internal class RedisTimeSeries
+    public class RedisTimeSeries
     {
+        public RedisTimeSeries(string redisHost)
+        {
+            RedisHost = redisHost;
+        }
 
-        private static void AddByQuoteType(string symbol, string quote_type, FyQuote[] quotes)
+
+        public string RedisHost { get; }
+
+        private void AddByQuoteType(string symbol, string quote_type, FyQuote[] quotes)
         {
             var time_series = new List<(string, TimeStamp, double)>();
             string ts_complete_name = $"{symbol}:{quote_type}";
 
-            RedisTimeSeries.CreateTimeSeries(ts_complete_name, symbol, quote_type);
+            CreateTimeSeries(ts_complete_name, symbol, quote_type);
 
             foreach (var item in quotes)
             {
@@ -36,7 +43,7 @@ namespace NRedisTimeSeries.RedisTimeSeriesAdapter
                 );
             }
 
-            ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost");
+            ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(RedisHost);
             IDatabase db = redis.GetDatabase();
 
             db.TimeSeriesMAdd(time_series);
@@ -48,7 +55,7 @@ namespace NRedisTimeSeries.RedisTimeSeriesAdapter
         /// </summary>
         /// <param name="symbol">Quote symbol</param>
         /// <param name="quotes">Historical data</param>
-        public static void AddQuoteHistoricalData(string symbol, FyQuote[] quotes)
+        public void AddQuoteHistoricalData(string symbol, FyQuote[] quotes)
         {
             string[] quote_types = {
                 "Low", "Close", "Open", "High", "AdjClose", "Volume"
@@ -56,7 +63,7 @@ namespace NRedisTimeSeries.RedisTimeSeriesAdapter
 
             foreach (var quote_type in quote_types)
             {
-                RedisTimeSeries.AddByQuoteType(symbol, quote_type, quotes);
+                AddByQuoteType(symbol, quote_type, quotes);
             }
 
         }
@@ -64,9 +71,9 @@ namespace NRedisTimeSeries.RedisTimeSeriesAdapter
         /// <summary>
         /// Delete all Redis Database
         /// </summary>
-        public static void DeleteAllDatabase()
+        public void DeleteAllDatabase()
         {
-            ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost");
+            ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(RedisHost);
             IDatabase db = redis.GetDatabase();
             db.Execute("FLUSHALL");
             redis.Close();
@@ -78,9 +85,9 @@ namespace NRedisTimeSeries.RedisTimeSeriesAdapter
         /// <param name="ts_complete_name"> A valid Redis key name</param>
         /// <param name="symbol">Quote Symbol</param>
         /// <param name="quote_type">Quote Type</param>
-        public static void CreateTimeSeries(string ts_complete_name, string symbol, string quote_type)
+        public void CreateTimeSeries(string ts_complete_name, string symbol, string quote_type)
         {
-            ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost");
+            ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(RedisHost);
             IDatabase db = redis.GetDatabase();
 
             var labels = new List<TimeSeriesLabel> {
